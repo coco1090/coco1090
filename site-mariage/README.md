@@ -25,5 +25,4 @@ Toute la lecture/écriture passe par le serveur avec la clé `service_role` ; RL
 ## Personnaliser
 
 - Textes, programme, infos pratiques, liste de mariage : `content/site.ts`
-- Photo du couple : déposer `public/photo-couple.jpg` et mettre à jour `storyPhoto`
 - Couleurs / polices : `app/globals.css` (bloc `@theme`)

@@ -27,13 +27,7 @@ export default function Home() {
         {/* Notre histoire */}
         <section id="histoire" className="mx-auto max-w-5xl scroll-mt-20 px-4 py-16">
           <h2 className="text-center text-4xl">Notre histoire</h2>
-          <div className="mt-8 grid items-center gap-8 md:grid-cols-2">
-            <div className="aspect-[4/5] overflow-hidden rounded-3xl bg-blush/60 shadow-inner">
-              {/* Remplacer public/photo-couple.jpg par une vraie photo */}
-              <img src={site.storyPhoto} alt="" className="h-full w-full object-cover" />
-            </div>
-            <p className="font-serif text-xl leading-relaxed text-ink/90">{site.story}</p>
-          </div>
+          <p className="mx-auto mt-8 max-w-2xl text-center font-serif text-xl leading-relaxed text-ink/90">{site.story}</p>
         </section>
 
         {/* Le jour J */}
