@@ -52,7 +52,7 @@ export default function Home() {
         {/* Infos pratiques */}
         <section id="infos" className="mx-auto max-w-5xl scroll-mt-20 px-4 py-16">
           <h2 className="text-center text-4xl">Infos pratiques</h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
+          <div className="mx-auto mt-8 grid max-w-xl gap-4">
             {site.practical.map((i) => (
               <div key={i.title} className="card">
                 <h3 className="text-2xl text-rose">{i.title}</h3>
