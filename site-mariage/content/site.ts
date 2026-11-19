@@ -1,0 +1,27 @@
+// Contenu du site : à adapter avec les mariés.
+
+export const site = {
+  brideName: "Alizée",
+  groomName: "Prénom",
+  dateLabel: "29 mai 2027",
+  date: "2027-05-29",
+  city: "Lieu à préciser",
+  tagline: "Nous avons la joie de vous inviter à célébrer notre mariage",
+  story:
+    "Quelques lignes sur votre histoire : votre rencontre, le jour où tout a basculé, et pourquoi vous avez envie de fêter ça avec les gens que vous aimez.",
+  storyPhoto: "/photo-couple.svg", // remplacer par une vraie photo dans public/,
+  program: [
+    { time: "14h30", title: "Cérémonie civile", place: "Mairie", details: "Adresse à préciser" },
+    { time: "16h00", title: "Cérémonie laïque", place: "Domaine", details: "Dans les jardins" },
+    { time: "18h00", title: "Cocktail", place: "Domaine", details: "Terrasse" },
+    { time: "20h30", title: "Dîner & soirée", place: "Domaine", details: "Salle de réception" },
+  ],
+  practical: [
+    { title: "Accès", text: "Itinéraire depuis la gare / l'autoroute à préciser. Pensez au covoiturage !" },
+    { title: "Parking", text: "Un parking gratuit est disponible sur place." },
+    { title: "Hébergements", text: "Liste d'hôtels et chambres d'hôtes à proximité à préciser." },
+  ],
+  // Mettre à null pour masquer la section « Liste de mariage »
+  registry: null as null | { text: string; url: string; label: string },
+  // registry: { text: "Votre présence est le plus beau des cadeaux…", url: "https://…", label: "Participer à la cagnotte" },
+};
