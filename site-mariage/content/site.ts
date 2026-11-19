@@ -2,7 +2,7 @@
 
 export const site = {
   brideName: "Alizée",
-  groomName: "Prénom",
+  groomName: "Adam",
   dateLabel: "29 mai 2027",
   date: "2027-05-29",
   city: "Lieu à préciser",
