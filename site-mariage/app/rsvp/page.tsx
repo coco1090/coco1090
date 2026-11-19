@@ -1,6 +1,7 @@
 import { rsvpClosed, env } from "@/lib/env";
 import { getAnsweredResponseId } from "@/lib/session";
 import { db, Person, ResponseRow } from "@/lib/supabase";
+import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { RsvpForm, Recap } from "@/components/RsvpForm";
 
@@ -28,7 +29,10 @@ export default async function RsvpPage() {
     <>
       <Nav />
       <main className="mx-auto max-w-2xl px-4 py-12">
-        <h1 className="text-center text-4xl">Votre réponse</h1>
+        <Link href="/" className="inline-flex items-center gap-1 text-sm text-muted hover:text-rose">
+          ← Retour à l’accueil
+        </Link>
+        <h1 className="mt-4 text-center text-4xl">Votre réponse</h1>
         {answered ? (
           <Recap
             attending={answered.response.attending}
@@ -53,6 +57,11 @@ export default async function RsvpPage() {
             <RsvpForm readOnly={closed} />
           </>
         )}
+        <div className="mt-10 text-center">
+          <Link href="/" className="btn-ghost">
+            ← Retour à l’accueil
+          </Link>
+        </div>
       </main>
     </>
   );

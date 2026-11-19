@@ -11,8 +11,8 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-20 border-b border-blush/60 bg-cream/85 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="script text-2xl text-rose">
-          {site.brideName[0]} &amp; {site.groomName[0]}
+        <Link href="/" className="script text-2xl text-rose hover:opacity-80" aria-label="Retour à l’accueil">
+          {site.brideName} &amp; {site.groomName}
         </Link>
         <nav className="hidden gap-6 text-sm text-muted md:flex">
           {links.map((l) => (
