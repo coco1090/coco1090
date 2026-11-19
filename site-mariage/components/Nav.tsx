@@ -3,7 +3,6 @@ import { site } from "@/content/site";
 
 const links = [
   { href: "/#histoire", label: "Notre histoire" },
-  { href: "/#jour-j", label: "Le jour J" },
   { href: "/#infos", label: "Infos pratiques" },
   ...(site.registry ? [{ href: "/#liste", label: "Liste" }] : []),
 ];

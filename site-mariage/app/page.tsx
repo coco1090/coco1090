@@ -30,25 +30,6 @@ export default function Home() {
           <p className="mx-auto mt-8 max-w-2xl text-center font-serif text-xl leading-relaxed text-ink/90">{site.story}</p>
         </section>
 
-        {/* Le jour J */}
-        <section id="jour-j" className="scroll-mt-20 bg-white/50 px-4 py-16">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="text-center text-4xl">Le jour J</h2>
-            <ol className="relative mt-10 border-l border-blush-deep/60 pl-8">
-              {site.program.map((p) => (
-                <li key={p.time} className="relative mb-10 last:mb-0">
-                  <span className="absolute -left-[2.35rem] top-1 h-4 w-4 rounded-full border-2 border-rose bg-cream" />
-                  <p className="font-serif text-xl text-rose">{p.time}</p>
-                  <p className="text-lg font-medium">{p.title}</p>
-                  <p className="text-muted">
-                    {p.place} · {p.details}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
         {/* Infos pratiques */}
         <section id="infos" className="mx-auto max-w-5xl scroll-mt-20 px-4 py-16">
           <h2 className="text-center text-4xl">Infos pratiques</h2>
