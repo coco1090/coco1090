@@ -9,8 +9,14 @@ type Stats = { responses: number; present: number; absent: number; children: num
 export function Dashboard({ responses, stats, error }: { responses: ResponseWithPeople[]; stats: Stats; error: string }) {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const [presence, setPresence] = useState<"all" | "yes" | "no">("all");
+  const [view, setView] = useState<"all" | "present" | "absent" | "children" | "allergies">("all");
   const [open, setOpen] = useState<string | null>(null);
+  const presence = view === "present" ? "yes" : view === "absent" ? "no" : "all";
+  const setPresence = (v: "all" | "yes" | "no") => setView(v === "yes" ? "present" : v === "no" ? "absent" : "all");
+  const pick = (v: typeof view) => {
+    setView(view === v ? "all" : v);
+    setTimeout(() => document.getElementById("liste")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
 
   const filtered = responses.filter((r) => {
     if (presence === "yes" && !r.attending) return false;
@@ -28,9 +34,9 @@ export function Dashboard({ responses, stats, error }: { responses: ResponseWith
     router.refresh();
   }
 
-  const allergyList = responses
-    .filter((r) => r.attending)
-    .flatMap((r) => r.people.filter((p) => p.has_allergies).map((p) => ({ ...p, from: `${r.first_name} ${r.last_name}` })));
+  const presentPeople = responses.filter((r) => r.attending).flatMap((r) => r.people.map((p) => ({ ...p, from: `${r.first_name} ${r.last_name}` })));
+  const allergyList = presentPeople.filter((p) => p.has_allergies);
+  const childrenList = presentPeople.filter((p) => p.is_child);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
@@ -51,31 +57,91 @@ export function Dashboard({ responses, stats, error }: { responses: ResponseWith
 
       {error && <p className="mt-4 rounded-xl bg-blush/60 px-4 py-3 text-sm text-rose">{error}</p>}
 
-      <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Présents" value={stats.present} tone="sage" sub={`${stats.adults} adulte(s), ${stats.children} enfant(s)`} />
-        <Stat label="Absents" value={stats.absent} tone="rose" />
-        <Stat label="Enfants" value={stats.children} />
-        <Stat label="Allergies" value={stats.allergies} sub="personnes présentes" />
+      <p className="mt-6 text-xs text-muted">Touchez une carte pour voir le détail.</p>
+      <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Stat label="Présents" value={stats.present} tone="sage" sub={`${stats.adults} adulte(s), ${stats.children} enfant(s)`} active={view === "present"} onClick={() => pick("present")} />
+        <Stat label="Absents" value={stats.absent} tone="rose" active={view === "absent"} onClick={() => pick("absent")} />
+        <Stat label="Enfants" value={stats.children} sub="présents" active={view === "children"} onClick={() => pick("children")} />
+        <Stat label="Allergies" value={stats.allergies} sub="personnes présentes" active={view === "allergies"} onClick={() => pick("allergies")} />
       </div>
 
-      {allergyList.length > 0 && (
+      <div id="liste" className="scroll-mt-4" />
+
+      {view === "allergies" && (
         <section className="card mt-6">
           <h2 className="text-2xl">Allergies et régimes (pour le traiteur)</h2>
-          <ul className="mt-3 space-y-1 text-sm">
-            {allergyList.map((p) => (
-              <li key={p.id}>
-                <span className="font-medium">
-                  {p.first_name} {p.last_name}
-                </span>
-                {p.is_child && <span className="chip ml-2 bg-sage/20 text-sage-deep">enfant</span>} : {p.allergy_details}
-              </li>
-            ))}
-          </ul>
+          {allergyList.length === 0 ? (
+            <p className="mt-2 text-sm text-muted">Aucune allergie signalée.</p>
+          ) : (
+            <ul className="mt-3 space-y-2 text-sm">
+              {allergyList.map((p) => (
+                <li key={p.id} className="rounded-xl bg-cream px-3 py-2">
+                  <span className="font-medium">
+                    {p.first_name} {p.last_name}
+                  </span>
+                  {p.is_child && <span className="chip ml-2 bg-sage/20 text-sage-deep">enfant</span>}
+                  <span className="text-rose"> · {p.allergy_details}</span>
+                  <span className="block text-xs text-muted">réponse de {p.from}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {view === "children" && (
+        <section className="card mt-6">
+          <h2 className="text-2xl">Enfants présents</h2>
+          {childrenList.length === 0 ? (
+            <p className="mt-2 text-sm text-muted">Aucun enfant pour l’instant.</p>
+          ) : (
+            <ul className="mt-3 space-y-2 text-sm">
+              {childrenList.map((p) => (
+                <li key={p.id} className="rounded-xl bg-cream px-3 py-2">
+                  <span className="font-medium">
+                    {p.first_name} {p.last_name}
+                  </span>
+                  {p.has_allergies && <span className="text-rose"> · {p.allergy_details}</span>}
+                  <span className="block text-xs text-muted">avec {p.from}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {(view === "present" || view === "absent") && (
+        <section className="card mt-6">
+          <h2 className="text-2xl">{view === "present" ? "Personnes présentes" : "Personnes absentes"}</h2>
+          {(() => {
+            const list = responses.filter((r) => r.attending === (view === "present")).flatMap((r) => r.people);
+            return list.length === 0 ? (
+              <p className="mt-2 text-sm text-muted">Personne pour l’instant.</p>
+            ) : (
+              <ul className="mt-3 grid gap-1 text-sm sm:grid-cols-2">
+                {list.map((p) => (
+                  <li key={p.id} className="rounded-xl bg-cream px-3 py-2">
+                    {p.first_name} {p.last_name}
+                    {p.is_child && <span className="chip ml-2 bg-sage/20 text-sage-deep">enfant</span>}
+                    {p.has_allergies && <span className="text-rose"> · {p.allergy_details}</span>}
+                  </li>
+                ))}
+              </ul>
+            );
+          })()}
         </section>
       )}
 
       <section className="mt-8">
-        <div className="flex flex-wrap gap-2">
+        <h2 className="text-2xl">
+          {view === "present" ? "Réponses « présent »" : view === "absent" ? "Réponses « absent »" : "Toutes les réponses"}
+          {view !== "all" && (
+            <button type="button" onClick={() => setView("all")} className="ml-3 text-sm font-sans text-rose hover:underline">
+              Tout afficher
+            </button>
+          )}
+        </h2>
+        <div className="mt-3 flex flex-wrap gap-2">
           <input className="field !w-auto flex-1" placeholder="Rechercher un nom…" value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="field !w-auto" value={presence} onChange={(e) => setPresence(e.target.value as typeof presence)}>
             <option value="all">Tous</option>
@@ -137,14 +203,33 @@ export function Dashboard({ responses, stats, error }: { responses: ResponseWith
   );
 }
 
-function Stat({ label, value, sub, tone }: { label: string; value: number; sub?: string; tone?: "sage" | "rose" }) {
+function Stat({
+  label,
+  value,
+  sub,
+  tone,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  sub?: string;
+  tone?: "sage" | "rose";
+  active: boolean;
+  onClick: () => void;
+}) {
   const color = tone === "sage" ? "text-sage-deep" : tone === "rose" ? "text-rose" : "text-ink";
   return (
-    <div className="card">
+    <button
+      type="button"
+      onClick={onClick}
+      className={`card text-left transition hover:border-rose/60 hover:shadow-md ${active ? "!border-rose ring-2 ring-rose/20" : ""}`}
+    >
       <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
       <p className={`mt-1 font-serif text-4xl ${color}`}>{value}</p>
       {sub && <p className="text-xs text-muted">{sub}</p>}
-    </div>
+      <p className="mt-2 text-xs text-rose">{active ? "Masquer" : "Voir la liste →"}</p>
+    </button>
   );
 }
 
