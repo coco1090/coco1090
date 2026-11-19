@@ -16,26 +16,25 @@ export function db(): SupabaseClient {
   return client;
 }
 
-export type Household = {
+export type ResponseRow = {
   id: string;
-  code: string;
-  name: string;
-  max_guests: number;
-  created_at: string;
-  responded_at: string | null;
-};
-
-export type Guest = {
-  id: string;
-  household_id: string;
   last_name: string;
   first_name: string;
+  email: string | null;
+  phone: string | null;
   address: string | null;
-  attending: boolean | null;
+  attending: boolean;
+  message: string | null;
+  created_at: string;
+};
+
+export type Person = {
+  id: string;
+  response_id: string;
+  first_name: string;
+  last_name: string;
   is_child: boolean;
   has_allergies: boolean;
   allergy_details: string | null;
-  is_companion: boolean;
-  created_at: string;
-  updated_at: string;
+  position: number;
 };

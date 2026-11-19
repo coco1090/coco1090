@@ -1,36 +1,33 @@
-import { db, Household, Guest } from "./supabase";
+import { db, ResponseRow, Person } from "./supabase";
 
-export type HouseholdWithGuests = Household & { guests: Guest[] };
+export type ResponseWithPeople = ResponseRow & { people: Person[] };
 
-export async function loadAll(): Promise<HouseholdWithGuests[]> {
+export async function loadAll(): Promise<ResponseWithPeople[]> {
   const supabase = db();
-  const [h, g] = await Promise.all([
-    supabase.from("households").select("*").order("name"),
-    supabase.from("guests").select("*").order("is_companion").order("created_at"),
+  const [r, p] = await Promise.all([
+    supabase.from("responses").select("*").order("created_at", { ascending: false }),
+    supabase.from("people").select("*").order("position"),
   ]);
-  if (h.error) throw h.error;
-  if (g.error) throw g.error;
-  const byHousehold = new Map<string, Guest[]>();
-  for (const guest of (g.data ?? []) as Guest[]) {
-    const arr = byHousehold.get(guest.household_id) ?? [];
-    arr.push(guest);
-    byHousehold.set(guest.household_id, arr);
+  if (r.error) throw r.error;
+  if (p.error) throw p.error;
+  const byResponse = new Map<string, Person[]>();
+  for (const person of (p.data ?? []) as Person[]) {
+    const arr = byResponse.get(person.response_id) ?? [];
+    arr.push(person);
+    byResponse.set(person.response_id, arr);
   }
-  return ((h.data ?? []) as Household[]).map((hh) => ({ ...hh, guests: byHousehold.get(hh.id) ?? [] }));
+  return ((r.data ?? []) as ResponseRow[]).map((row) => ({ ...row, people: byResponse.get(row.id) ?? [] }));
 }
 
-export function stats(households: HouseholdWithGuests[]) {
-  const guests = households.flatMap((h) => h.guests);
-  const present = guests.filter((g) => g.attending === true);
+export function stats(responses: ResponseWithPeople[]) {
+  const presentPeople = responses.filter((r) => r.attending).flatMap((r) => r.people);
+  const absentPeople = responses.filter((r) => !r.attending).flatMap((r) => r.people);
   return {
-    households: households.length,
-    householdsAnswered: households.filter((h) => h.responded_at).length,
-    householdsPending: households.filter((h) => !h.responded_at).length,
-    present: present.length,
-    absent: guests.filter((g) => g.attending === false).length,
-    seatsPlanned: households.reduce((s, h) => s + h.max_guests, 0),
-    companions: present.filter((g) => g.is_companion).length,
-    children: present.filter((g) => g.is_child).length,
-    allergies: present.filter((g) => g.has_allergies),
+    responses: responses.length,
+    present: presentPeople.length,
+    absent: absentPeople.length,
+    children: presentPeople.filter((p) => p.is_child).length,
+    adults: presentPeople.filter((p) => !p.is_child).length,
+    allergies: presentPeople.filter((p) => p.has_allergies).length,
   };
 }

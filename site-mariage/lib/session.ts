@@ -2,7 +2,6 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { env } from "./env";
 
-const GUEST_COOKIE = "mariage_foyer";
 const ADMIN_COOKIE = "mariage_admin";
 const WEEK = 60 * 60 * 24 * 7;
 
@@ -40,20 +39,6 @@ const cookieOpts = {
   path: "/",
 };
 
-// ---- Invités (un cookie = un foyer) ----
-export async function setGuestSession(householdId: string) {
-  (await cookies()).set(GUEST_COOKIE, pack(householdId), { ...cookieOpts, maxAge: WEEK * 8 });
-}
-
-export async function getGuestHouseholdId(): Promise<string | null> {
-  return unpack((await cookies()).get(GUEST_COOKIE)?.value);
-}
-
-export async function clearGuestSession() {
-  (await cookies()).delete(GUEST_COOKIE);
-}
-
-// ---- Admin (mariés) ----
 export async function setAdminSession() {
   (await cookies()).set(ADMIN_COOKIE, pack("admin:" + Date.now()), { ...cookieOpts, maxAge: WEEK });
 }

@@ -1,78 +1,43 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { HouseholdWithGuests } from "@/lib/admin-data";
+import type { ResponseWithPeople } from "@/lib/admin-data";
 
-type Stats = {
-  households: number;
-  householdsAnswered: number;
-  householdsPending: number;
-  present: number;
-  absent: number;
-  seatsPlanned: number;
-  companions: number;
-  children: number;
-  allergies: number;
-};
+type Stats = { responses: number; present: number; absent: number; children: number; adults: number; allergies: number };
 
-type Row = {
-  householdId: string;
-  household: string;
-  code: string;
-  first: string;
-  last: string;
-  address: string;
-  attending: boolean | null;
-  child: boolean;
-  companion: boolean;
-  allergies: string | null;
-};
-
-export function Dashboard({ households, stats, error }: { households: HouseholdWithGuests[]; stats: Stats; error: string }) {
+export function Dashboard({ responses, stats, error }: { responses: ResponseWithPeople[]; stats: Stats; error: string }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [presence, setPresence] = useState<"all" | "yes" | "no">("all");
-  const [child, setChild] = useState<"all" | "yes" | "no">("all");
-  const [tab, setTab] = useState<"reponses" | "relances" | "traiteur" | "foyers">("reponses");
+  const [open, setOpen] = useState<string | null>(null);
 
-  const rows: Row[] = useMemo(
-    () =>
-      households.flatMap((h) =>
-        h.guests.map((g) => ({
-          householdId: h.id,
-          household: h.name,
-          code: h.code,
-          first: g.first_name,
-          last: g.last_name,
-          address: g.address ?? "",
-          attending: g.attending,
-          child: g.is_child,
-          companion: g.is_companion,
-          allergies: g.has_allergies ? g.allergy_details || "Oui (non précisé)" : null,
-        }))
-      ),
-    [households]
-  );
-
-  const filtered = rows.filter((r) => {
-    if (q && !`${r.household} ${r.first} ${r.last}`.toLowerCase().includes(q.toLowerCase())) return false;
-    if (presence === "yes" && r.attending !== true) return false;
-    if (presence === "no" && r.attending !== false) return false;
-    if (child === "yes" && !r.child) return false;
-    if (child === "no" && r.child) return false;
+  const filtered = responses.filter((r) => {
+    if (presence === "yes" && !r.attending) return false;
+    if (presence === "no" && r.attending) return false;
+    if (q) {
+      const hay = [r.first_name, r.last_name, r.email, r.phone, ...r.people.flatMap((p) => [p.first_name, p.last_name])].join(" ").toLowerCase();
+      if (!hay.includes(q.toLowerCase())) return false;
+    }
     return true;
   });
 
-  const pending = households.filter((h) => !h.responded_at);
-  const allergies = rows.filter((r) => r.attending && r.allergies);
+  async function remove(r: ResponseWithPeople) {
+    if (!confirm(`Supprimer la réponse de ${r.first_name} ${r.last_name} ?`)) return;
+    await fetch("/api/admin/responses", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: r.id }) });
+    router.refresh();
+  }
+
+  const allergyList = responses
+    .filter((r) => r.attending)
+    .flatMap((r) => r.people.filter((p) => p.has_allergies).map((p) => ({ ...p, from: `${r.first_name} ${r.last_name}` })));
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
+    <main className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-4xl">Dashboard des mariés</h1>
-          <p className="text-sm text-muted">Suivi des réponses en temps réel</p>
+          <p className="text-sm text-muted">{stats.responses} réponse{stats.responses > 1 ? "s" : ""} reçue{stats.responses > 1 ? "s" : ""}</p>
         </div>
         <div className="flex gap-2">
           <a href="/admin/export" className="btn-primary !py-2 text-sm">
@@ -86,88 +51,88 @@ export function Dashboard({ households, stats, error }: { households: HouseholdW
 
       {error && <p className="mt-4 rounded-xl bg-blush/60 px-4 py-3 text-sm text-rose">{error}</p>}
 
-      {/* Compteurs */}
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Présents" value={stats.present} tone="sage" sub={`${stats.companions} accompagnant(s)`} />
+        <Stat label="Présents" value={stats.present} tone="sage" sub={`${stats.adults} adulte(s), ${stats.children} enfant(s)`} />
         <Stat label="Absents" value={stats.absent} tone="rose" />
-        <Stat label="Foyers sans réponse" value={stats.householdsPending} sub={`sur ${stats.households} foyers`} />
-        <Stat label="Enfants" value={stats.children} sub={`${stats.allergies} allergie(s) signalée(s)`} />
+        <Stat label="Enfants" value={stats.children} />
+        <Stat label="Allergies" value={stats.allergies} sub="personnes présentes" />
       </div>
 
-      {/* Onglets */}
-      <div className="mt-8 flex flex-wrap gap-2 border-b border-blush">
-        {(
-          [
-            ["reponses", `Réponses (${rows.length})`],
-            ["relances", `À relancer (${pending.length})`],
-            ["traiteur", `Traiteur (${allergies.length})`],
-            ["foyers", `Foyers (${households.length})`],
-          ] as const
-        ).map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => setTab(k)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm ${tab === k ? "border-rose text-rose" : "border-transparent text-muted hover:text-ink"}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "reponses" && (
-        <section className="mt-4">
-          <div className="flex flex-wrap gap-2">
-            <input className="field !w-auto flex-1" placeholder="Rechercher un foyer ou un nom…" value={q} onChange={(e) => setQ(e.target.value)} />
-            <select className="field !w-auto" value={presence} onChange={(e) => setPresence(e.target.value as typeof presence)}>
-              <option value="all">Présence : tous</option>
-              <option value="yes">Présents</option>
-              <option value="no">Absents</option>
-            </select>
-            <select className="field !w-auto" value={child} onChange={(e) => setChild(e.target.value as typeof child)}>
-              <option value="all">Enfant : tous</option>
-              <option value="yes">Enfants</option>
-              <option value="no">Adultes</option>
-            </select>
-          </div>
-          <Table
-            head={["Foyer", "Prénom", "Nom", "Présence", "Enfant", "Allergies", "Adresse"]}
-            rows={filtered.map((r) => [
-              r.household,
-              r.first + (r.companion ? " ·acc." : ""),
-              r.last,
-              <Presence key="p" v={r.attending} />,
-              r.child ? "Oui" : "",
-              r.allergies ?? "",
-              r.address,
-            ])}
-            empty="Aucune réponse pour ces filtres."
-          />
+      {allergyList.length > 0 && (
+        <section className="card mt-6">
+          <h2 className="text-2xl">Allergies et régimes (pour le traiteur)</h2>
+          <ul className="mt-3 space-y-1 text-sm">
+            {allergyList.map((p) => (
+              <li key={p.id}>
+                <span className="font-medium">
+                  {p.first_name} {p.last_name}
+                </span>
+                {p.is_child && <span className="chip ml-2 bg-sage/20 text-sage-deep">enfant</span>} : {p.allergy_details}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
-      {tab === "relances" && (
-        <section className="mt-4">
-          <p className="text-sm text-muted">Foyers qui n’ont pas encore répondu. Envoyez-leur leur lien perso.</p>
-          <Table
-            head={["Foyer", "Code", "Lien perso", "Places"]}
-            rows={pending.map((h) => [h.name, <code key="c">{h.code}</code>, <CopyLink key="l" code={h.code} />, h.max_guests])}
-            empty="Tout le monde a répondu 🎉"
-          />
-        </section>
-      )}
+      <section className="mt-8">
+        <div className="flex flex-wrap gap-2">
+          <input className="field !w-auto flex-1" placeholder="Rechercher un nom…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <select className="field !w-auto" value={presence} onChange={(e) => setPresence(e.target.value as typeof presence)}>
+            <option value="all">Tous</option>
+            <option value="yes">Présents</option>
+            <option value="no">Absents</option>
+          </select>
+        </div>
 
-      {tab === "traiteur" && (
-        <section className="mt-4">
-          <p className="text-sm text-muted">Personnes présentes ayant signalé une allergie ou restriction.</p>
-          <Table
-            head={["Prénom", "Nom", "Foyer", "Enfant", "Allergies / restrictions"]}
-            rows={allergies.map((r) => [r.first, r.last, r.household, r.child ? "Oui" : "", r.allergies])}
-            empty="Aucune allergie signalée."
-          />
-        </section>
-      )}
+        {filtered.length === 0 ? (
+          <p className="mt-8 text-center text-sm text-muted">Aucune réponse pour l’instant.</p>
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {filtered.map((r) => (
+              <li key={r.id} className="card !p-4">
+                <button type="button" className="flex w-full items-start justify-between gap-3 text-left" onClick={() => setOpen(open === r.id ? null : r.id)}>
+                  <div>
+                    <p className="font-medium">
+                      {r.first_name} {r.last_name}
+                      <span className="ml-2 text-sm text-muted">
+                        {r.people.length} personne{r.people.length > 1 ? "s" : ""}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted">{new Date(r.created_at).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" })}</p>
+                  </div>
+                  <span className={`chip ${r.attending ? "bg-sage/20 text-sage-deep" : "bg-blush text-rose"}`}>{r.attending ? "Présent" : "Absent"}</span>
+                </button>
 
-      {tab === "foyers" && <Households households={households} onChange={() => router.refresh()} />}
+                {open === r.id && (
+                  <div className="mt-4 space-y-3 border-t border-blush/60 pt-4 text-sm">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Info label="Email" value={r.email} />
+                      <Info label="Téléphone" value={r.phone} />
+                      <Info label="Adresse" value={r.address} wide />
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-muted">Personnes</p>
+                      <ul className="mt-1 space-y-1">
+                        {r.people.map((p) => (
+                          <li key={p.id}>
+                            {p.first_name} {p.last_name}
+                            {p.is_child && <span className="chip ml-2 bg-sage/20 text-sage-deep">enfant</span>}
+                            {p.has_allergies && <span className="ml-2 text-rose">· {p.allergy_details}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    {r.message && <Info label="Message" value={r.message} wide />}
+                    <button type="button" onClick={() => remove(r)} className="text-xs text-muted hover:text-rose">
+                      Supprimer cette réponse
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </main>
   );
 }
@@ -183,126 +148,11 @@ function Stat({ label, value, sub, tone }: { label: string; value: number; sub?:
   );
 }
 
-function Presence({ v }: { v: boolean | null }) {
-  if (v === null) return <span className="chip bg-cream text-muted">—</span>;
-  return v ? <span className="chip bg-sage/20 text-sage-deep">Présent</span> : <span className="chip bg-blush text-rose">Absent</span>;
-}
-
-function Table({ head, rows, empty }: { head: string[]; rows: React.ReactNode[][]; empty: string }) {
-  if (rows.length === 0) return <p className="mt-6 text-center text-sm text-muted">{empty}</p>;
+function Info({ label, value, wide }: { label: string; value: string | null; wide?: boolean }) {
   return (
-    <div className="mt-4 overflow-x-auto rounded-2xl border border-blush bg-white/70">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-blush/40 text-xs uppercase tracking-wider text-muted">
-          <tr>
-            {head.map((h) => (
-              <th key={h} className="px-3 py-2 font-medium">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} className="border-t border-blush/60">
-              {r.map((c, j) => (
-                <td key={j} className="px-3 py-2 align-top">
-                  {c}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className={wide ? "sm:col-span-2" : ""}>
+      <p className="text-xs uppercase tracking-wider text-muted">{label}</p>
+      <p className="whitespace-pre-line">{value || <span className="text-muted">—</span>}</p>
     </div>
-  );
-}
-
-function CopyLink({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
-  const link = typeof window !== "undefined" ? `${window.location.origin}/r/${code}` : `/r/${code}`;
-  return (
-    <button
-      type="button"
-      className="text-rose hover:underline"
-      onClick={async () => {
-        await navigator.clipboard.writeText(link).catch(() => {});
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
-      }}
-    >
-      {copied ? "Copié !" : `/r/${code}`}
-    </button>
-  );
-}
-
-function Households({ households, onChange }: { households: HouseholdWithGuests[]; onChange: () => void }) {
-  const [name, setName] = useState("");
-  const [max, setMax] = useState(2);
-  const [code, setCode] = useState("");
-  const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function add(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setErr("");
-    const res = await fetch("/api/admin/households", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, max_guests: max, code: code || undefined }),
-    });
-    setBusy(false);
-    if (res.ok) {
-      setName("");
-      setCode("");
-      onChange();
-    } else {
-      const j = await res.json().catch(() => ({}));
-      setErr(j.error ?? "Erreur");
-    }
-  }
-
-  async function remove(id: string, label: string) {
-    if (!confirm(`Supprimer le foyer « ${label} » et toutes ses réponses ?`)) return;
-    await fetch("/api/admin/households", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
-    onChange();
-  }
-
-  return (
-    <section className="mt-4">
-      <form onSubmit={add} className="card flex flex-wrap items-end gap-3">
-        <div className="flex-1 min-w-48">
-          <label className="text-xs text-muted">Nom du foyer</label>
-          <input className="field mt-1" placeholder="Famille Dupont" value={name} onChange={(e) => setName(e.target.value)} required />
-        </div>
-        <div className="w-24">
-          <label className="text-xs text-muted">Places</label>
-          <input className="field mt-1" type="number" min={1} max={20} value={max} onChange={(e) => setMax(Number(e.target.value))} />
-        </div>
-        <div className="w-36">
-          <label className="text-xs text-muted">Code (optionnel)</label>
-          <input className="field mt-1 uppercase" placeholder="auto" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
-        </div>
-        <button className="btn-primary !py-3" disabled={busy}>
-          Ajouter
-        </button>
-        {err && <p className="w-full text-sm text-rose">{err}</p>}
-      </form>
-      <Table
-        head={["Foyer", "Code", "Lien perso", "Places", "Réponses", ""]}
-        rows={households.map((h) => [
-          h.name,
-          <code key="c">{h.code}</code>,
-          <CopyLink key="l" code={h.code} />,
-          h.max_guests,
-          h.responded_at ? `${h.guests.filter((g) => g.attending).length} présent(s) / ${h.guests.length}` : <span className="text-muted">—</span>,
-          <button key="d" className="text-xs text-muted hover:text-rose" onClick={() => remove(h.id, h.name)}>
-            Supprimer
-          </button>,
-        ])}
-        empty="Aucun foyer. Ajoutez les invitations ci-dessus."
-      />
-    </section>
   );
 }

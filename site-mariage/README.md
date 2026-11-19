@@ -5,9 +5,9 @@ Stack : Next.js 15 (App Router) + Supabase (Postgres) + Tailwind v4, hébergé s
 
 ## Fonctionnement
 
-- **Invités** : le site s'ouvre avec le code imprimé sur le faire-part (ex. `K7M2QX`) ou via le lien perso `/r/K7M2QX`. Pas de compte.
-- **RSVP** (`/rsvp`) : une personne par carte (prénom, nom, adresse, présence, enfant, allergies), bouton « Ajouter une personne » jusqu'au nombre de places du foyer. Modifiable avec le même code jusqu'à la date limite, puis lecture seule. Récap affiché après envoi.
-- **Mariés** (`/admin`) : mot de passe distinct. Compteurs, tableau filtrable (recherche, présence, enfant), liste traiteur (allergies), foyers à relancer avec lien perso à copier, gestion des foyers (ajout / suppression, code auto ou choisi), export Excel.
+- **Invités** : le site est ouvert, il suffit de partager l'adresse aux personnes invitées. Pas de code, pas de compte.
+- **Formulaire** (`/rsvp`) : prénom, nom, email, téléphone, adresse postale, présence, allergies / régime, accompagnants (adultes ou enfants, chacun avec ses allergies) et un petit mot. Après la date limite, le formulaire se ferme.
+- **Mariés** (`/admin`) : mot de passe. Compteurs (présents, absents, enfants, allergies), liste des allergies pour le traiteur, toutes les réponses avec recherche et filtre présence, détail de chaque réponse, suppression, export Excel.
 
 Toute la lecture/écriture passe par le serveur avec la clé `service_role` ; RLS est activée sans policy, donc rien n'est accessible depuis le navigateur.
 
@@ -27,7 +27,3 @@ Toute la lecture/écriture passe par le serveur avec la clé `service_role` ; RL
 - Textes, programme, infos pratiques, liste de mariage : `content/site.ts`
 - Photo du couple : déposer `public/photo-couple.jpg` et mettre à jour `storyPhoto`
 - Couleurs / polices : `app/globals.css` (bloc `@theme`)
-
-## Créer les invitations
-
-Dans `/admin` → onglet **Foyers** : nom du foyer + nombre de places. Le code est généré (lettres/chiffres sans ambiguïté) ; le lien perso `/r/CODE` est à copier dans le faire-part ou un message.

@@ -1,91 +1,130 @@
 "use client";
 
 import { useState } from "react";
-import type { Guest } from "@/lib/supabase";
 
-export type GuestInput = {
-  id?: string;
-  last_name: string;
+type PersonInput = {
   first_name: string;
-  address: string;
-  attending: "yes" | "no" | "";
+  last_name: string;
   is_child: boolean;
   has_allergies: boolean;
   allergy_details: string;
-  is_companion: boolean;
 };
 
-function blank(is_companion: boolean): GuestInput {
-  return { last_name: "", first_name: "", address: "", attending: "", is_child: false, has_allergies: false, allergy_details: "", is_companion };
-}
+type FormState = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  address: string;
+  attending: "yes" | "no" | "";
+  message: string;
+  self: { is_child: boolean; has_allergies: boolean; allergy_details: string };
+  companions: PersonInput[];
+};
 
-function fromGuest(g: Guest): GuestInput {
-  return {
-    id: g.id,
-    last_name: g.last_name,
-    first_name: g.first_name,
-    address: g.address ?? "",
-    attending: g.attending === null ? "" : g.attending ? "yes" : "no",
-    is_child: g.is_child,
-    has_allergies: g.has_allergies,
-    allergy_details: g.allergy_details ?? "",
-    is_companion: g.is_companion,
-  };
-}
+const blankPerson = (): PersonInput => ({ first_name: "", last_name: "", is_child: false, has_allergies: false, allergy_details: "" });
 
-export function RsvpForm({
-  household,
-  initialGuests,
-  readOnly,
+const initial: FormState = {
+  first_name: "",
+  last_name: "",
+  email: "",
+  phone: "",
+  address: "",
+  attending: "",
+  message: "",
+  self: { is_child: false, has_allergies: false, allergy_details: "" },
+  companions: [],
+};
+
+function Choice<T extends string | boolean>({
+  value,
+  options,
+  onChange,
+  name,
 }: {
-  household: { id: string; name: string; max_guests: number };
-  initialGuests: Guest[];
-  readOnly: boolean;
+  value: T | "";
+  options: { v: T; label: string }[];
+  onChange: (v: T) => void;
+  name: string;
 }) {
-  const [guests, setGuests] = useState<GuestInput[]>(
-    initialGuests.length ? initialGuests.map(fromGuest) : [blank(false)]
+  return (
+    <div className="mt-2 grid grid-cols-2 gap-2">
+      {options.map((o) => (
+        <label
+          key={String(o.v)}
+          className={`cursor-pointer rounded-xl border px-4 py-3 text-center text-sm transition ${
+            value === o.v ? "border-rose bg-blush/60 text-rose" : "border-blush-deep/40 bg-white/60 hover:bg-blush/30"
+          }`}
+        >
+          <input type="radio" className="sr-only" name={name} checked={value === o.v} onChange={() => onChange(o.v)} />
+          {o.label}
+        </label>
+      ))}
+    </div>
   );
+}
+
+function AllergyBlock({
+  value,
+  onChange,
+  name,
+}: {
+  value: { has_allergies: boolean; allergy_details: string };
+  onChange: (v: { has_allergies: boolean; allergy_details: string }) => void;
+  name: string;
+}) {
+  return (
+    <div>
+      <p className="text-sm font-medium">Allergies, intolérances ou régime particulier</p>
+      <Choice
+        name={name}
+        value={value.has_allergies}
+        options={[
+          { v: false, label: "Non, aucun" },
+          { v: true, label: "Oui" },
+        ]}
+        onChange={(v) => onChange({ ...value, has_allergies: v })}
+      />
+      {value.has_allergies && (
+        <textarea
+          className="field mt-3"
+          rows={2}
+          required
+          placeholder="Précisez (ex : arachides, gluten, végétarien, sans porc…)"
+          value={value.allergy_details}
+          onChange={(e) => onChange({ ...value, allergy_details: e.target.value })}
+        />
+      )}
+    </div>
+  );
+}
+
+export function RsvpForm({ readOnly }: { readOnly: boolean }) {
+  const [f, setF] = useState<FormState>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState<GuestInput[] | null>(null);
+  const [done, setDone] = useState<FormState | null>(null);
 
-  const canAdd = guests.length < household.max_guests;
-
-  function update(i: number, patch: Partial<GuestInput>) {
-    setGuests((gs) => gs.map((g, j) => (j === i ? { ...g, ...patch } : g)));
-  }
-
-  function remove(i: number) {
-    setGuests((gs) => gs.filter((_, j) => j !== i));
-  }
-
-  function copyAddress(i: number) {
-    const first = guests.find((g) => g.address.trim());
-    if (first) update(i, { address: first.address });
-  }
+  const set = (patch: Partial<FormState>) => setF((s) => ({ ...s, ...patch }));
+  const setCompanion = (i: number, patch: Partial<PersonInput>) =>
+    setF((s) => ({ ...s, companions: s.companions.map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    for (const g of guests) {
-      if (!g.attending) {
-        setError(`Merci d’indiquer la présence de ${g.first_name || "chaque personne"}.`);
-        return;
-      }
-      if (g.has_allergies && !g.allergy_details.trim()) {
-        setError(`Merci de préciser les allergies de ${g.first_name || "chaque personne"}.`);
-        return;
-      }
+    if (!f.attending) {
+      setError("Merci d’indiquer si vous serez présent(e).");
+      return;
     }
     setSaving(true);
     const res = await fetch("/api/rsvp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ guests }),
+      body: JSON.stringify(f),
     });
     setSaving(false);
     if (res.ok) {
-      setDone(guests);
+      setDone(f);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       const j = await res.json().catch(() => ({}));
@@ -94,32 +133,41 @@ export function RsvpForm({
   }
 
   if (done) {
-    const present = done.filter((g) => g.attending === "yes");
-    const absent = done.filter((g) => g.attending === "no");
+    const people = [
+      { first_name: done.first_name, last_name: done.last_name, ...done.self },
+      ...done.companions,
+    ];
     return (
       <div className="card mt-8">
         <h2 className="text-3xl text-rose">Merci, c’est bien noté !</h2>
-        <p className="mt-2 text-muted">Voici le récapitulatif de votre réponse. Vous pouvez la modifier avec votre code jusqu’à la date limite.</p>
+        <p className="mt-2 text-muted">
+          {done.attending === "yes"
+            ? "Nous avons hâte de vous retrouver le jour J."
+            : "Nous sommes tristes de ne pas vous avoir avec nous, mais merci de nous avoir prévenus."}
+        </p>
         <ul className="mt-4 space-y-2">
-          {done.map((g, i) => (
-            <li key={i} className="flex items-start justify-between gap-3 rounded-xl bg-cream px-4 py-3">
-              <div>
-                <p className="font-medium">
-                  {g.first_name} {g.last_name} {g.is_child && <span className="chip bg-sage/20 text-sage-deep">enfant</span>}
-                </p>
-                {g.has_allergies && <p className="text-sm text-muted">Allergies : {g.allergy_details}</p>}
-              </div>
-              <span className={`chip ${g.attending === "yes" ? "bg-sage/20 text-sage-deep" : "bg-blush text-rose"}`}>
-                {g.attending === "yes" ? "Présent(e)" : "Absent(e)"}
-              </span>
+          {people.map((p, i) => (
+            <li key={i} className="rounded-xl bg-cream px-4 py-3">
+              <p className="font-medium">
+                {p.first_name} {p.last_name}{" "}
+                {p.is_child && <span className="chip bg-sage/20 text-sage-deep">enfant</span>}
+              </p>
+              {p.has_allergies && <p className="text-sm text-muted">Allergies : {p.allergy_details}</p>}
             </li>
           ))}
         </ul>
         <p className="mt-4 text-sm text-muted">
-          {present.length} présent{present.length > 1 ? "s" : ""} · {absent.length} absent{absent.length > 1 ? "s" : ""}
+          {done.attending === "yes" ? `${people.length} personne${people.length > 1 ? "s" : ""} présente${people.length > 1 ? "s" : ""}` : "Absent(e)s"}
+          . Pour modifier votre réponse, contactez directement les mariés.
         </p>
-        <button className="btn-ghost mt-6" onClick={() => setDone(null)}>
-          Modifier ma réponse
+        <button
+          className="btn-ghost mt-6"
+          onClick={() => {
+            setDone(null);
+            setF(initial);
+          }}
+        >
+          Envoyer une autre réponse
         </button>
       </div>
     );
@@ -129,110 +177,105 @@ export function RsvpForm({
     <form onSubmit={submit} className="mt-8 space-y-6">
       {readOnly && (
         <p className="rounded-xl bg-blush/50 px-4 py-3 text-sm text-rose">
-          La date limite est passée : votre réponse est en lecture seule. Contactez directement les mariés pour tout changement.
+          La date limite est passée : le formulaire est fermé. Contactez directement les mariés.
         </p>
       )}
       <fieldset disabled={readOnly} className="space-y-6">
-        {guests.map((g, i) => (
-          <div key={i} className="card space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl">
-                {g.is_companion ? "Accompagnant" : "Personne"} {i + 1}
-              </h2>
-              {guests.length > 1 && (
-                <button type="button" onClick={() => remove(i)} className="text-sm text-muted hover:text-rose">
-                  Retirer
-                </button>
-              )}
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium">Prénom</label>
-                <input className="field mt-1" required value={g.first_name} onChange={(e) => update(i, { first_name: e.target.value })} />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Nom</label>
-                <input className="field mt-1" required value={g.last_name} onChange={(e) => update(i, { last_name: e.target.value })} />
-              </div>
-            </div>
-
+        {/* Vous */}
+        <div className="card space-y-4">
+          <h2 className="text-2xl">Vous</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Adresse postale complète</label>
-                {i > 0 && (
-                  <button type="button" onClick={() => copyAddress(i)} className="text-xs text-rose hover:underline">
-                    Même adresse
-                  </button>
-                )}
-              </div>
-              <textarea
-                className="field mt-1"
-                rows={2}
-                required
-                placeholder="Numéro, rue, code postal, ville"
-                value={g.address}
-                onChange={(e) => update(i, { address: e.target.value })}
-              />
+              <label className="text-sm font-medium">Prénom</label>
+              <input className="field mt-1" required value={f.first_name} onChange={(e) => set({ first_name: e.target.value })} />
             </div>
-
             <div>
-              <p className="text-sm font-medium">Présence</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {(["yes", "no"] as const).map((v) => (
-                  <label
-                    key={v}
-                    className={`cursor-pointer rounded-xl border px-4 py-3 text-center text-sm transition ${
-                      g.attending === v ? "border-rose bg-blush/60 text-rose" : "border-blush-deep/40 bg-white/60 hover:bg-blush/30"
-                    }`}
-                  >
-                    <input type="radio" className="sr-only" name={`att-${i}`} checked={g.attending === v} onChange={() => update(i, { attending: v })} />
-                    {v === "yes" ? "Je serai présent(e)" : "Je ne serai pas présent(e)"}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <label className="flex items-center gap-3 text-sm">
-              <input type="checkbox" className="h-4 w-4 accent-rose" checked={g.is_child} onChange={(e) => update(i, { is_child: e.target.checked })} />
-              Enfant
-            </label>
-
-            <div>
-              <p className="text-sm font-medium">Allergies ou intolérances</p>
-              <div className="mt-2 flex gap-2">
-                {[false, true].map((v) => (
-                  <label
-                    key={String(v)}
-                    className={`cursor-pointer rounded-full border px-4 py-2 text-sm ${
-                      g.has_allergies === v ? "border-rose bg-blush/60 text-rose" : "border-blush-deep/40 bg-white/60"
-                    }`}
-                  >
-                    <input type="radio" className="sr-only" name={`all-${i}`} checked={g.has_allergies === v} onChange={() => update(i, { has_allergies: v })} />
-                    {v ? "Oui" : "Non, aucune"}
-                  </label>
-                ))}
-              </div>
-              {g.has_allergies && (
-                <textarea
-                  className="field mt-3"
-                  rows={2}
-                  placeholder="Précisez (ex : arachides, gluten, végétarien…)"
-                  value={g.allergy_details}
-                  onChange={(e) => update(i, { allergy_details: e.target.value })}
-                />
-              )}
+              <label className="text-sm font-medium">Nom</label>
+              <input className="field mt-1" required value={f.last_name} onChange={(e) => set({ last_name: e.target.value })} />
             </div>
           </div>
-        ))}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-sm font-medium">Email</label>
+              <input className="field mt-1" type="email" required value={f.email} onChange={(e) => set({ email: e.target.value })} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Téléphone</label>
+              <input className="field mt-1" type="tel" value={f.phone} onChange={(e) => set({ phone: e.target.value })} />
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Adresse postale complète</label>
+            <textarea
+              className="field mt-1"
+              rows={2}
+              required
+              placeholder="Numéro, rue, code postal, ville"
+              value={f.address}
+              onChange={(e) => set({ address: e.target.value })}
+            />
+          </div>
+          <div>
+            <p className="text-sm font-medium">Serez-vous présent(e) le 29 mai 2027 ?</p>
+            <Choice
+              name="attending"
+              value={f.attending}
+              options={[
+                { v: "yes" as const, label: "Oui, avec plaisir !" },
+                { v: "no" as const, label: "Non, malheureusement" },
+              ]}
+              onChange={(v) => set({ attending: v })}
+            />
+          </div>
+          {f.attending === "yes" && (
+            <AllergyBlock name="self-all" value={f.self} onChange={(v) => set({ self: { ...f.self, ...v } })} />
+          )}
+        </div>
 
-        <div className="flex flex-col items-center gap-2">
-          <button type="button" className="btn-ghost" disabled={!canAdd} onClick={() => setGuests((gs) => [...gs, blank(true)])}>
-            + Ajouter une personne
-          </button>
-          <p className="text-xs text-muted">
-            {guests.length} / {household.max_guests} place{household.max_guests > 1 ? "s" : ""}
-          </p>
+        {/* Accompagnants */}
+        {f.attending === "yes" && (
+          <>
+            {f.companions.map((c, i) => (
+              <div key={i} className="card space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl">Accompagnant {i + 1}</h2>
+                  <button
+                    type="button"
+                    onClick={() => setF((s) => ({ ...s, companions: s.companions.filter((_, j) => j !== i) }))}
+                    className="text-sm text-muted hover:text-rose"
+                  >
+                    Retirer
+                  </button>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-medium">Prénom</label>
+                    <input className="field mt-1" required value={c.first_name} onChange={(e) => setCompanion(i, { first_name: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Nom</label>
+                    <input className="field mt-1" required value={c.last_name} onChange={(e) => setCompanion(i, { last_name: e.target.value })} />
+                  </div>
+                </div>
+                <label className="flex items-center gap-3 text-sm">
+                  <input type="checkbox" className="h-4 w-4 accent-rose" checked={c.is_child} onChange={(e) => setCompanion(i, { is_child: e.target.checked })} />
+                  C’est un enfant
+                </label>
+                <AllergyBlock name={`c-all-${i}`} value={c} onChange={(v) => setCompanion(i, v)} />
+              </div>
+            ))}
+            <div className="text-center">
+              <button type="button" className="btn-ghost" onClick={() => setF((s) => ({ ...s, companions: [...s.companions, blankPerson()] }))}>
+                + Ajouter un accompagnant (conjoint, enfant…)
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Message */}
+        <div className="card">
+          <label className="text-sm font-medium">Un petit mot pour les mariés (facultatif)</label>
+          <textarea className="field mt-1" rows={3} value={f.message} onChange={(e) => set({ message: e.target.value })} />
         </div>
 
         {error && <p className="text-center text-sm text-rose">{error}</p>}

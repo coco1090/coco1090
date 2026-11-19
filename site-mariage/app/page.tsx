@@ -1,22 +1,9 @@
 import Link from "next/link";
 import { site } from "@/content/site";
-import { getGuestHouseholdId } from "@/lib/session";
-import { getHousehold } from "@/lib/households";
-import { CodeGate } from "@/components/CodeGate";
 import { Nav } from "@/components/Nav";
 import { Floral, FloralCorner } from "@/components/Floral";
 
-export const dynamic = "force-dynamic";
-
-export default async function Home({ searchParams }: { searchParams: Promise<{ erreur?: string }> }) {
-  const { erreur } = await searchParams;
-  const householdId = await getGuestHouseholdId();
-  const household = householdId ? await getHousehold(householdId) : null;
-
-  if (!household) {
-    return <CodeGate initialError={erreur === "code" ? "Ce lien ne correspond à aucune invitation." : undefined} />;
-  }
-
+export default function Home() {
   return (
     <>
       <Nav />
@@ -32,10 +19,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
           <Floral className="mx-auto my-6 h-12 w-44 text-blush-deep" />
           <p className="font-serif text-2xl md:text-3xl">{site.dateLabel}</p>
           <p className="mt-1 text-muted">{site.city}</p>
-          <p className="mt-8 text-sm text-muted">
-            Bienvenue, <span className="font-medium text-ink">{household.name}</span>
-          </p>
-          <Link href="/rsvp" className="btn-primary mt-4">
+          <Link href="/rsvp" className="btn-primary mt-8">
             Répondre à l’invitation
           </Link>
         </section>
@@ -99,7 +83,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
         <section id="rsvp" className="px-4 py-20 text-center">
           <Floral className="mx-auto mb-4 h-12 w-44 text-sage" />
           <h2 className="text-4xl">Serez-vous des nôtres ?</h2>
-          <p className="mt-3 text-muted">Merci de nous répondre, pour chaque personne de votre foyer.</p>
+          <p className="mt-3 text-muted">Merci de nous dire qui sera là, et de nous signaler vos allergies.</p>
           <Link href="/rsvp" className="btn-primary mt-6">
             Répondre
           </Link>

@@ -7,13 +7,12 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   if (!(await isAdmin())) redirect("/admin/login");
-  let households: Awaited<ReturnType<typeof loadAll>> = [];
+  let responses: Awaited<ReturnType<typeof loadAll>> = [];
   let error = "";
   try {
-    households = await loadAll();
+    responses = await loadAll();
   } catch (e) {
     error = e instanceof Error ? e.message : "Erreur de chargement";
   }
-  const s = stats(households);
-  return <Dashboard households={households} stats={{ ...s, allergies: s.allergies.length }} error={error} />;
+  return <Dashboard responses={responses} stats={stats(responses)} error={error} />;
 }
