@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { env } from "./env";
 
 const ADMIN_COOKIE = "mariage_admin";
+const ANSWERED_COOKIE = "mariage_reponse";
 const WEEK = 60 * 60 * 24 * 7;
 
 function sign(value: string): string {
@@ -39,6 +40,7 @@ const cookieOpts = {
   path: "/",
 };
 
+// ---- Admin (mariés) ----
 export async function setAdminSession() {
   (await cookies()).set(ADMIN_COOKIE, pack("admin:" + Date.now()), { ...cookieOpts, maxAge: WEEK });
 }
@@ -50,4 +52,13 @@ export async function isAdmin(): Promise<boolean> {
 
 export async function clearAdminSession() {
   (await cookies()).delete(ADMIN_COOKIE);
+}
+
+// ---- Invité : mémorise la réponse envoyée depuis cet appareil ----
+export async function setAnsweredCookie(responseId: string) {
+  (await cookies()).set(ANSWERED_COOKIE, pack(responseId), { ...cookieOpts, maxAge: WEEK * 52 });
+}
+
+export async function getAnsweredResponseId(): Promise<string | null> {
+  return unpack((await cookies()).get(ANSWERED_COOKIE)?.value);
 }

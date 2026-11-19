@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { checkAddress, checkEmail, checkName, checkPhone } from "@/lib/validate";
 
 type PersonInput = {
   first_name: string;
@@ -99,6 +100,42 @@ function AllergyBlock({
   );
 }
 
+
+export function Recap({
+  attending,
+  people,
+  alreadySent,
+}: {
+  attending: boolean;
+  people: { first_name: string; last_name: string; is_child: boolean; has_allergies: boolean; allergy_details: string }[];
+  alreadySent?: boolean;
+}) {
+  return (
+    <div className="card mt-8">
+      <h2 className="text-3xl text-rose">{alreadySent ? "Vous avez déjà répondu" : "Merci, c’est bien noté !"}</h2>
+      <p className="mt-2 text-muted">
+        {attending
+          ? "Nous avons hâte de vous retrouver le jour J."
+          : "Nous sommes tristes de ne pas vous avoir avec nous, mais merci de nous avoir prévenus."}
+      </p>
+      <ul className="mt-4 space-y-2">
+        {people.map((p, i) => (
+          <li key={i} className="rounded-xl bg-cream px-4 py-3">
+            <p className="font-medium">
+              {p.first_name} {p.last_name} {p.is_child && <span className="chip bg-sage/20 text-sage-deep">enfant</span>}
+            </p>
+            {p.has_allergies && <p className="text-sm text-muted">Allergies : {p.allergy_details}</p>}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 text-sm text-muted">
+        {attending ? `${people.length} personne${people.length > 1 ? "s" : ""} présente${people.length > 1 ? "s" : ""}.` : "Absent(e)s."}{" "}
+        Pour modifier votre réponse, contactez directement les mariés.
+      </p>
+    </div>
+  );
+}
+
 export function RsvpForm({ readOnly }: { readOnly: boolean }) {
   const [f, setF] = useState<FormState>(initial);
   const [saving, setSaving] = useState(false);
@@ -112,8 +149,17 @@ export function RsvpForm({ readOnly }: { readOnly: boolean }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!f.attending) {
-      setError("Merci d’indiquer si vous serez présent(e).");
+    const err =
+      checkName(f.first_name, "Prénom") ??
+      checkName(f.last_name, "Nom") ??
+      checkEmail(f.email) ??
+      checkPhone(f.phone) ??
+      checkAddress(f.address) ??
+      (!f.attending ? "Merci d’indiquer si vous serez présent(e)." : null) ??
+      f.companions.map((c, i) => checkName(c.first_name, `Accompagnant ${i + 1}, prénom`) ?? checkName(c.last_name, `Accompagnant ${i + 1}, nom`)).find(Boolean) ??
+      null;
+    if (err) {
+      setError(err);
       return;
     }
     setSaving(true);
@@ -133,43 +179,11 @@ export function RsvpForm({ readOnly }: { readOnly: boolean }) {
   }
 
   if (done) {
-    const people = [
-      { first_name: done.first_name, last_name: done.last_name, ...done.self },
-      ...done.companions,
-    ];
     return (
-      <div className="card mt-8">
-        <h2 className="text-3xl text-rose">Merci, c’est bien noté !</h2>
-        <p className="mt-2 text-muted">
-          {done.attending === "yes"
-            ? "Nous avons hâte de vous retrouver le jour J."
-            : "Nous sommes tristes de ne pas vous avoir avec nous, mais merci de nous avoir prévenus."}
-        </p>
-        <ul className="mt-4 space-y-2">
-          {people.map((p, i) => (
-            <li key={i} className="rounded-xl bg-cream px-4 py-3">
-              <p className="font-medium">
-                {p.first_name} {p.last_name}{" "}
-                {p.is_child && <span className="chip bg-sage/20 text-sage-deep">enfant</span>}
-              </p>
-              {p.has_allergies && <p className="text-sm text-muted">Allergies : {p.allergy_details}</p>}
-            </li>
-          ))}
-        </ul>
-        <p className="mt-4 text-sm text-muted">
-          {done.attending === "yes" ? `${people.length} personne${people.length > 1 ? "s" : ""} présente${people.length > 1 ? "s" : ""}` : "Absent(e)s"}
-          . Pour modifier votre réponse, contactez directement les mariés.
-        </p>
-        <button
-          className="btn-ghost mt-6"
-          onClick={() => {
-            setDone(null);
-            setF(initial);
-          }}
-        >
-          Envoyer une autre réponse
-        </button>
-      </div>
+      <Recap
+        attending={done.attending === "yes"}
+        people={[{ first_name: done.first_name, last_name: done.last_name, ...done.self }, ...done.companions]}
+      />
     );
   }
 
@@ -187,21 +201,21 @@ export function RsvpForm({ readOnly }: { readOnly: boolean }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="text-sm font-medium">Prénom</label>
-              <input className="field mt-1" required value={f.first_name} onChange={(e) => set({ first_name: e.target.value })} />
+              <input className="field mt-1" required minLength={2} autoComplete="given-name" value={f.first_name} onChange={(e) => set({ first_name: e.target.value })} />
             </div>
             <div>
               <label className="text-sm font-medium">Nom</label>
-              <input className="field mt-1" required value={f.last_name} onChange={(e) => set({ last_name: e.target.value })} />
+              <input className="field mt-1" required minLength={2} autoComplete="family-name" value={f.last_name} onChange={(e) => set({ last_name: e.target.value })} />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="text-sm font-medium">Email</label>
-              <input className="field mt-1" type="email" required value={f.email} onChange={(e) => set({ email: e.target.value })} />
+              <input className="field mt-1" type="email" required placeholder="prenom@exemple.fr" value={f.email} onChange={(e) => set({ email: e.target.value })} />
             </div>
             <div>
               <label className="text-sm font-medium">Téléphone</label>
-              <input className="field mt-1" type="tel" value={f.phone} onChange={(e) => set({ phone: e.target.value })} />
+              <input className="field mt-1" type="tel" placeholder="06 12 34 56 78" value={f.phone} onChange={(e) => set({ phone: e.target.value })} />
             </div>
           </div>
           <div>
@@ -210,6 +224,8 @@ export function RsvpForm({ readOnly }: { readOnly: boolean }) {
               className="field mt-1"
               rows={2}
               required
+              minLength={10}
+              autoComplete="street-address"
               placeholder="Numéro, rue, code postal, ville"
               value={f.address}
               onChange={(e) => set({ address: e.target.value })}
