@@ -10,13 +10,13 @@ const links = [
 export function Nav() {
   return (
     <header className="sticky top-0 z-20 border-b border-blush/60 bg-cream/85 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="script text-2xl text-rose hover:opacity-80" aria-label="Retour à l’accueil">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2">
+        <Link href="/" className="script text-2xl leading-none text-rose hover:opacity-80 py-2" aria-label="Alizée et Adam, retour à l’accueil">
           {site.brideName} &amp; {site.groomName}
         </Link>
-        <nav className="hidden gap-6 text-sm text-muted md:flex">
+        <nav aria-label="Sections du site" className="hidden gap-6 text-sm text-muted md:flex">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="hover:text-rose">
+            <a key={l.href} href={l.href} className="py-2 hover:text-rose">
               {l.label}
             </a>
           ))}
@@ -25,6 +25,13 @@ export function Nav() {
           Répondre
         </Link>
       </div>
+      <nav aria-label="Sections du site" className="flex gap-5 overflow-x-auto px-4 pb-2 text-sm text-muted md:hidden">
+        {links.map((l) => (
+          <a key={l.href} href={l.href} className="shrink-0 py-1 hover:text-rose">
+            {l.label}
+          </a>
+        ))}
+      </nav>
     </header>
   );
 }

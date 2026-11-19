@@ -39,10 +39,10 @@ export function Dashboard({ responses, stats, error }: { responses: ResponseWith
   const childrenList = presentPeople.filter((p) => p.is_child);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    <main id="contenu" className="mx-auto max-w-5xl px-4 py-6 md:py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-4xl">Dashboard des mariés</h1>
+        <div className="min-w-0">
+          <h1 className="text-3xl md:text-4xl">Dashboard des mariés</h1>
           <p className="text-sm text-muted">{stats.responses} réponse{stats.responses > 1 ? "s" : ""} reçue{stats.responses > 1 ? "s" : ""}</p>
         </div>
         <div className="flex gap-2">
@@ -55,7 +55,7 @@ export function Dashboard({ responses, stats, error }: { responses: ResponseWith
         </div>
       </div>
 
-      {error && <p className="mt-4 rounded-xl bg-blush/60 px-4 py-3 text-sm text-rose">{error}</p>}
+      {error && <p role="alert" className="mt-4 rounded-xl bg-blush/60 px-4 py-3 text-sm text-rose">{error}</p>}
 
       <p className="mt-6 text-xs text-muted">Touchez une carte pour voir le détail.</p>
       <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -142,8 +142,8 @@ export function Dashboard({ responses, stats, error }: { responses: ResponseWith
           )}
         </h2>
         <div className="mt-3 flex flex-wrap gap-2">
-          <input className="field !w-auto flex-1" placeholder="Rechercher un nom…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <select className="field !w-auto" value={presence} onChange={(e) => setPresence(e.target.value as typeof presence)}>
+          <input type="search" aria-label="Rechercher un nom" className="field !w-auto min-w-0 flex-1" placeholder="Rechercher un nom…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <select aria-label="Filtrer par présence" className="field !w-auto" value={presence} onChange={(e) => setPresence(e.target.value as typeof presence)}>
             <option value="all">Tous</option>
             <option value="yes">Présents</option>
             <option value="no">Absents</option>
@@ -156,7 +156,13 @@ export function Dashboard({ responses, stats, error }: { responses: ResponseWith
           <ul className="mt-4 space-y-3">
             {filtered.map((r) => (
               <li key={r.id} className="card !p-4">
-                <button type="button" className="flex w-full items-start justify-between gap-3 text-left" onClick={() => setOpen(open === r.id ? null : r.id)}>
+                <button
+                  type="button"
+                  className="flex min-h-11 w-full items-start justify-between gap-3 text-left"
+                  aria-expanded={open === r.id}
+                  aria-controls={`rep-${r.id}`}
+                  onClick={() => setOpen(open === r.id ? null : r.id)}
+                >
                   <div>
                     <p className="font-medium">
                       {r.first_name} {r.last_name}
@@ -170,7 +176,7 @@ export function Dashboard({ responses, stats, error }: { responses: ResponseWith
                 </button>
 
                 {open === r.id && (
-                  <div className="mt-4 space-y-3 border-t border-blush/60 pt-4 text-sm">
+                  <div id={`rep-${r.id}`} className="mt-4 space-y-3 border-t border-blush/60 pt-4 text-sm">
                     <div className="grid gap-2 sm:grid-cols-2">
                       <Info label="Email" value={r.email} />
                       <Info label="Téléphone" value={r.phone} />
@@ -189,7 +195,7 @@ export function Dashboard({ responses, stats, error }: { responses: ResponseWith
                       </ul>
                     </div>
                     {r.message && <Info label="Message" value={r.message} wide />}
-                    <button type="button" onClick={() => remove(r)} className="text-xs text-muted hover:text-rose">
+                    <button type="button" onClick={() => remove(r)} className="min-h-11 text-xs text-muted hover:text-rose">
                       Supprimer cette réponse
                     </button>
                   </div>
@@ -223,6 +229,7 @@ function Stat({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={`card text-left transition hover:border-rose/60 hover:shadow-md ${active ? "!border-rose ring-2 ring-rose/20" : ""}`}
     >
       <p className="text-xs uppercase tracking-wider text-muted">{label}</p>

@@ -28,11 +28,11 @@ export default async function RsvpPage() {
   return (
     <>
       <Nav />
-      <main className="mx-auto max-w-2xl px-4 py-12">
+      <main id="contenu" className="mx-auto max-w-2xl px-4 py-8 md:py-12">
         <Link href="/" className="inline-flex items-center gap-1 text-sm text-muted hover:text-rose">
           ← Retour à l’accueil
         </Link>
-        <h1 className="mt-4 text-center text-4xl">Votre réponse</h1>
+        <h1 className="mt-4 text-center text-3xl md:text-4xl">Votre réponse</h1>
         {answered ? (
           <Recap
             attending={answered.response.attending}

@@ -53,7 +53,7 @@ function Choice<T extends string | boolean>({
       {options.map((o) => (
         <label
           key={String(o.v)}
-          className={`cursor-pointer rounded-xl border px-4 py-3 text-center text-sm transition ${
+          className={`choice min-h-11 cursor-pointer rounded-xl border px-4 py-3 text-center text-sm transition ${
             value === o.v ? "border-rose bg-blush/60 text-rose" : "border-blush-deep/40 bg-white/60 hover:bg-blush/30"
           }`}
         >
@@ -76,7 +76,7 @@ function AllergyBlock({
 }) {
   return (
     <div>
-      <p className="text-sm font-medium">Allergies, intolérances ou régime particulier</p>
+      <p className="text-sm font-medium" id={`${name}-label`}>Allergies, intolérances ou régime particulier</p>
       <Choice
         name={name}
         value={value.has_allergies}
@@ -91,6 +91,7 @@ function AllergyBlock({
           className="field mt-3"
           rows={2}
           required
+          aria-label="Précisions sur les allergies ou le régime"
           placeholder="Précisez (ex : arachides, gluten, végétarien, sans porc…)"
           value={value.allergy_details}
           onChange={(e) => onChange({ ...value, allergy_details: e.target.value })}
@@ -160,6 +161,7 @@ export function RsvpForm({ readOnly }: { readOnly: boolean }) {
       null;
     if (err) {
       setError(err);
+      document.getElementById("form-error")?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     setSaving(true);
@@ -200,27 +202,28 @@ export function RsvpForm({ readOnly }: { readOnly: boolean }) {
           <h2 className="text-2xl">Vous</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-sm font-medium">Prénom</label>
-              <input className="field mt-1" required minLength={2} autoComplete="given-name" value={f.first_name} onChange={(e) => set({ first_name: e.target.value })} />
+              <label htmlFor="prenom" className="text-sm font-medium">Prénom</label>
+              <input id="prenom" className="field mt-1" required minLength={2} autoComplete="given-name" value={f.first_name} onChange={(e) => set({ first_name: e.target.value })} />
             </div>
             <div>
-              <label className="text-sm font-medium">Nom</label>
-              <input className="field mt-1" required minLength={2} autoComplete="family-name" value={f.last_name} onChange={(e) => set({ last_name: e.target.value })} />
+              <label htmlFor="nom" className="text-sm font-medium">Nom</label>
+              <input id="nom" className="field mt-1" required minLength={2} autoComplete="family-name" value={f.last_name} onChange={(e) => set({ last_name: e.target.value })} />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-sm font-medium">Email</label>
-              <input className="field mt-1" type="email" required placeholder="prenom@exemple.fr" value={f.email} onChange={(e) => set({ email: e.target.value })} />
+              <label htmlFor="email" className="text-sm font-medium">Email</label>
+              <input id="email" className="field mt-1" type="email" inputMode="email" autoComplete="email" required placeholder="prenom@exemple.fr" value={f.email} onChange={(e) => set({ email: e.target.value })} />
             </div>
             <div>
-              <label className="text-sm font-medium">Téléphone</label>
-              <input className="field mt-1" type="tel" placeholder="06 12 34 56 78" value={f.phone} onChange={(e) => set({ phone: e.target.value })} />
+              <label htmlFor="tel" className="text-sm font-medium">Téléphone <span className="font-normal text-muted">(facultatif)</span></label>
+              <input id="tel" className="field mt-1" type="tel" inputMode="tel" autoComplete="tel" placeholder="06 12 34 56 78" value={f.phone} onChange={(e) => set({ phone: e.target.value })} />
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium">Adresse postale complète</label>
+            <label htmlFor="adresse" className="text-sm font-medium">Adresse postale complète</label>
             <textarea
+              id="adresse"
               className="field mt-1"
               rows={2}
               required
@@ -232,7 +235,7 @@ export function RsvpForm({ readOnly }: { readOnly: boolean }) {
             />
           </div>
           <div>
-            <p className="text-sm font-medium">Serez-vous présent(e) le 29 mai 2027 ?</p>
+            <p className="text-sm font-medium" id="presence-label">Serez-vous présent(e) le 29 mai 2027 ?</p>
             <Choice
               name="attending"
               value={f.attending}
@@ -258,23 +261,24 @@ export function RsvpForm({ readOnly }: { readOnly: boolean }) {
                   <button
                     type="button"
                     onClick={() => setF((s) => ({ ...s, companions: s.companions.filter((_, j) => j !== i) }))}
-                    className="text-sm text-muted hover:text-rose"
+                    className="min-h-11 px-2 text-sm text-muted hover:text-rose"
+                    aria-label={`Retirer l’accompagnant ${i + 1}`}
                   >
                     Retirer
                   </button>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className="text-sm font-medium">Prénom</label>
-                    <input className="field mt-1" required value={c.first_name} onChange={(e) => setCompanion(i, { first_name: e.target.value })} />
+                    <label htmlFor={`c-prenom-${i}`} className="text-sm font-medium">Prénom</label>
+                    <input id={`c-prenom-${i}`} className="field mt-1" required minLength={2} value={c.first_name} onChange={(e) => setCompanion(i, { first_name: e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Nom</label>
-                    <input className="field mt-1" required value={c.last_name} onChange={(e) => setCompanion(i, { last_name: e.target.value })} />
+                    <label htmlFor={`c-nom-${i}`} className="text-sm font-medium">Nom</label>
+                    <input id={`c-nom-${i}`} className="field mt-1" required minLength={2} value={c.last_name} onChange={(e) => setCompanion(i, { last_name: e.target.value })} />
                   </div>
                 </div>
                 <label className="flex items-center gap-3 text-sm">
-                  <input type="checkbox" className="h-4 w-4 accent-rose" checked={c.is_child} onChange={(e) => setCompanion(i, { is_child: e.target.checked })} />
+                  <input type="checkbox" className="h-5 w-5 accent-rose" checked={c.is_child} onChange={(e) => setCompanion(i, { is_child: e.target.checked })} />
                   C’est un enfant
                 </label>
                 <AllergyBlock name={`c-all-${i}`} value={c} onChange={(v) => setCompanion(i, v)} />
@@ -290,11 +294,11 @@ export function RsvpForm({ readOnly }: { readOnly: boolean }) {
 
         {/* Message */}
         <div className="card">
-          <label className="text-sm font-medium">Un petit mot pour les mariés (facultatif)</label>
-          <textarea className="field mt-1" rows={3} value={f.message} onChange={(e) => set({ message: e.target.value })} />
+          <label htmlFor="message" className="text-sm font-medium">Un petit mot pour les mariés (facultatif)</label>
+          <textarea id="message" className="field mt-1" rows={3} value={f.message} onChange={(e) => set({ message: e.target.value })} />
         </div>
 
-        {error && <p className="text-center text-sm text-rose">{error}</p>}
+        <p id="form-error" role="alert" aria-live="assertive" className="text-center text-sm text-rose">{error}</p>
 
         <button className="btn-primary w-full" disabled={saving}>
           {saving ? "Envoi…" : "Envoyer ma réponse"}

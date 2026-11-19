@@ -7,14 +7,14 @@ export default function Home() {
   return (
     <>
       <Nav />
-      <main>
+      <main id="contenu">
         {/* Accueil */}
         <section className="relative overflow-hidden px-4 pb-20 pt-16 text-center md:pt-24">
           <FloralCorner className="pointer-events-none absolute -left-10 -bottom-10 h-56 w-56 text-blush-deep/60 md:h-80 md:w-80" />
           <FloralCorner className="pointer-events-none absolute -right-10 -top-10 h-56 w-56 rotate-180 text-sage/50 md:h-80 md:w-80" />
-          <p className="text-sm tracking-[0.3em] text-muted uppercase">{site.tagline}</p>
-          <h1 className="script mt-6 text-6xl leading-tight text-rose md:text-8xl">
-            {site.brideName} <span className="font-serif text-4xl text-blush-deep md:text-5xl">&amp;</span> {site.groomName}
+          <p className="text-xs tracking-[0.25em] text-muted uppercase sm:text-sm">{site.tagline}</p>
+          <h1 className="script mt-6 text-[clamp(2.75rem,14vw,6rem)] leading-tight text-rose">
+            {site.brideName} <span className="font-serif text-[0.6em] text-blush-deep" aria-hidden="true">&amp;</span> {site.groomName}
           </h1>
           <Floral className="mx-auto my-6 h-12 w-44 text-blush-deep" />
           <p className="font-serif text-2xl md:text-3xl">{site.dateLabel}</p>
@@ -26,13 +26,13 @@ export default function Home() {
 
         {/* Notre histoire */}
         <section id="histoire" className="mx-auto max-w-5xl scroll-mt-20 px-4 py-16">
-          <h2 className="text-center text-4xl">Notre histoire</h2>
+          <h2 className="text-center text-3xl md:text-4xl">Notre histoire</h2>
           <p className="mx-auto mt-8 max-w-2xl text-center font-serif text-xl leading-relaxed text-ink/90">{site.story}</p>
         </section>
 
         {/* Infos pratiques */}
         <section id="infos" className="mx-auto max-w-5xl scroll-mt-20 px-4 py-16">
-          <h2 className="text-center text-4xl">Infos pratiques</h2>
+          <h2 className="text-center text-3xl md:text-4xl">Infos pratiques</h2>
           <div className="mx-auto mt-8 grid max-w-xl gap-4">
             {site.practical.map((i) => (
               <div key={i.title} className="card">
@@ -46,7 +46,7 @@ export default function Home() {
         {/* Liste de mariage (optionnelle) */}
         {site.registry && (
           <section id="liste" className="scroll-mt-20 bg-white/50 px-4 py-16 text-center">
-            <h2 className="text-4xl">Liste de mariage</h2>
+            <h2 className="text-3xl md:text-4xl">Liste de mariage</h2>
             <p className="mx-auto mt-4 max-w-xl text-ink/85">{site.registry.text}</p>
             <a href={site.registry.url} target="_blank" rel="noreferrer" className="btn-ghost mt-6">
               {site.registry.label}
@@ -57,7 +57,7 @@ export default function Home() {
         {/* RSVP */}
         <section id="rsvp" className="px-4 py-20 text-center">
           <Floral className="mx-auto mb-4 h-12 w-44 text-sage" />
-          <h2 className="text-4xl">Serez-vous des nôtres ?</h2>
+          <h2 className="text-3xl md:text-4xl">Serez-vous des nôtres ?</h2>
           <p className="mt-3 text-muted">Merci de nous dire qui sera là, et de nous signaler vos allergies.</p>
           <Link href="/rsvp" className="btn-primary mt-6">
             Répondre

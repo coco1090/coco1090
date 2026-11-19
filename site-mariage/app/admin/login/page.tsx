@@ -29,12 +29,17 @@ export default function AdminLogin() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4">
+    <main id="contenu" className="flex min-h-dvh items-center justify-center px-4">
       <form onSubmit={submit} className="card w-full max-w-sm text-center">
         <Floral className="mx-auto mb-2 h-12 w-40 text-blush-deep" />
         <h1 className="text-3xl">Espace des mariés</h1>
+        <label htmlFor="mdp" className="sr-only">
+          Mot de passe
+        </label>
         <input
+          id="mdp"
           type="password"
+          autoComplete="current-password"
           className="field mt-6"
           placeholder="Mot de passe"
           value={password}
@@ -42,7 +47,7 @@ export default function AdminLogin() {
           autoFocus
           required
         />
-        {error && <p className="mt-3 text-sm text-rose">{error}</p>}
+        <p role="alert" className="mt-3 text-sm text-rose">{error}</p>
         <button className="btn-primary mt-4 w-full" disabled={loading}>
           {loading ? "Connexion…" : "Se connecter"}
         </button>

@@ -19,7 +19,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        <a href="#contenu" className="skip-link">
+          Aller au contenu
+        </a>
+        {children}
+      </body>
     </html>
   );
 }
